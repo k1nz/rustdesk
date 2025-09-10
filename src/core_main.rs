@@ -322,7 +322,14 @@ pub fn core_main() -> Option<Vec<String>> {
             return None;
         } else if args[0] == "--install-service" {
             log::info!("start --install-service");
-            crate::platform::install_service(false);
+            #[cfg(target_os = "windows")]
+            {
+                crate::platform::install_service(false);
+            }
+            #[cfg(not(target_os = "windows"))]
+            {
+                crate::platform::install_service();
+            }
             return None;
         } else if args[0] == "--uninstall-service" {
             log::info!("start --uninstall-service");
@@ -417,40 +424,125 @@ pub fn core_main() -> Option<Vec<String>> {
             }
             return None;
         } else if args[0] == "--config" {
-            if args.len() == 2 && !args[0].contains("host=") {
-                if crate::platform::is_installed() && is_root() {
-                    // encrypted string used in renaming exe.
-                    let name = if args[1].ends_with(".exe") {
-                        args[1].to_owned()
-                    } else {
-                        format!("{}.exe", args[1])
-                    };
-                    if let Ok(lic) = crate::custom_server::get_custom_server_from_string(&name) {
-                        if !lic.host.is_empty() {
-                            crate::ui_interface::set_option("key".into(), lic.key);
-                            crate::ui_interface::set_option(
-                                "custom-rendezvous-server".into(),
-                                lic.host,
-                            );
-                            crate::ui_interface::set_option("api-server".into(), lic.api);
-                            crate::ui_interface::set_option("relay-server".into(), lic.relay);
+            if args.len() == 2 {
+                // Support direct config string format: "host=x.x.x.x,key=xxx,api=xxx,relay=xxx"
+                #[cfg(target_os = "macos")]
+                {
+                    if args[1].contains("host=") {
+                        // Parse the config string
+                        let config_str = &args[1];
+                        let mut host = String::new();
+                        let mut key = String::new();
+                        let mut api = String::new();
+                        let mut relay = String::new();
+
+                        for part in config_str.split(',') {
+                            if let Some((k, v)) = part.split_once('=') {
+                                match k.trim() {
+                                    "host" => host = v.trim().to_string(),
+                                    "key" => key = v.trim().to_string(),
+                                    "api" => api = v.trim().to_string(),
+                                    "relay" => relay = v.trim().to_string(),
+                                    _ => {}
+                                }
+                            }
+                        }
+
+                        if !host.is_empty() {
+                            if crate::platform::is_installed() && is_root() {
+                                // Root privilege - set global configuration
+                                crate::ui_interface::set_option("key".into(), key);
+                                crate::ui_interface::set_option(
+                                    "custom-rendezvous-server".into(),
+                                    host,
+                                );
+                                crate::ui_interface::set_option("api-server".into(), api);
+                                crate::ui_interface::set_option("relay-server".into(), relay);
+                                println!("Configuration set successfully! Settings will be available for all users.");
+                            } else {
+                                // No root privilege - set user-level configuration
+                                crate::ui_interface::set_option("key".into(), key);
+                                crate::ui_interface::set_option(
+                                    "custom-rendezvous-server".into(),
+                                    host,
+                                );
+                                crate::ui_interface::set_option("api-server".into(), api);
+                                crate::ui_interface::set_option("relay-server".into(), relay);
+                                println!("Configuration set successfully! Settings saved for current user.");
+                            }
+                        } else {
+                            println!("Invalid config format. Use: host=x.x.x.x,key=xxx,api=xxx,relay=xxx");
                         }
                     }
-                } else {
-                    println!("Installation and administrative privileges required!");
                 }
+                #[cfg(target_os = "windows")]
+                {
+                    // Legacy encrypted string mode - still requires root
+                    if crate::platform::is_installed() && is_root() {
+                        let name = if args[1].ends_with(".exe") {
+                            args[1].to_owned()
+                        } else {
+                            format!("{}.exe", args[1])
+                        };
+                        if let Ok(lic) = crate::custom_server::get_custom_server_from_string(&name)
+                        {
+                            if !lic.host.is_empty() {
+                                crate::ui_interface::set_option("key".into(), lic.key);
+                                crate::ui_interface::set_option(
+                                    "custom-rendezvous-server".into(),
+                                    lic.host,
+                                );
+                                crate::ui_interface::set_option("api-server".into(), lic.api);
+                                crate::ui_interface::set_option("relay-server".into(), lic.relay);
+                                println!("Configuration set successfully! Settings will be available for all users.");
+                            }
+                        }
+                    } else {
+                        println!("Installation and administrative privileges required for encrypted config strings!");
+                        println!("Use direct format instead: --config \"host=x.x.x.x,key=xxx,api=xxx,relay=xxx\"");
+                    }
+                }
+            } else {
+                println!("Usage: --config <config_string>");
+                println!("Format: --config \"host=x.x.x.x,key=xxx,api=xxx,relay=xxx\"");
+                println!("Note: System-wide settings require root privileges");
             }
             return None;
         } else if args[0] == "--option" {
-            if crate::platform::is_installed() && is_root() {
-                if args.len() == 2 {
+            if args.len() == 2 {
+                // Read option - no root required
+                if crate::platform::is_installed() && is_root() {
                     let options = crate::ipc::get_options();
                     println!("{}", options.get(&args[1]).unwrap_or(&"".to_owned()));
-                } else if args.len() == 3 {
+                } else {
+                    // Read from user config without root
+                    let value = crate::ui_interface::get_option(&args[1]);
+                    println!("{}", value);
+                }
+            } else if args.len() == 3 {
+                // Write option
+                #[cfg(target_os = "windows")]
+                {
+                    if crate::platform::is_installed() && is_root() {
+                        // Root privilege - use system-wide config
+                        crate::ipc::set_option(&args[1], &args[2]);
+                        println!("Option '{}' set to '{}' (system-wide)", args[1], args[2]);
+                    } else {
+                        println!("Installation and administrative privileges required!");
+                    }
+                }
+                #[cfg(target_os = "macos")]
+                {
+                    // No root privilege - use user config
                     crate::ipc::set_option(&args[1], &args[2]);
+                    // crate::ui_interface::set_option(args[1].clone(), args[2].clone());
+                    println!("Option '{}' set to '{}' (user-level)", args[1], args[2]);
                 }
             } else {
-                println!("Installation and administrative privileges required!");
+                println!("Usage: --option <key> [value]");
+                println!("  --option <key>       : Get option value");
+                println!("  --option <key> <val> : Set option value");
+                println!("Note: System-wide settings require root privileges");
             }
             return None;
         } else if args[0] == "--assign" {

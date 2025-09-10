@@ -164,10 +164,45 @@ pub fn get_option<T: AsRef<str>>(key: T) -> String {
             "".to_owned()
         }
     }
+    
+    // // Try to get from global config if not found in local cache
+    // let global_value = get_option_global(key.as_ref());
+    // if !global_value.is_empty() {
+    //     return global_value;
+    // }
+    
     #[cfg(any(target_os = "android", target_os = "ios"))]
     {
         Config::get_option(key.as_ref())
     }
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    {
+        "".to_owned()
+    }
+}
+
+#[inline]
+pub fn get_option_global(key: &str) -> String {
+    // This function reads configuration from global paths for all users
+    #[cfg(target_os = "macos")]
+    {
+        use std::path::PathBuf;
+        use hbb_common::config::load_path;
+        
+        // Try to read from system-wide configuration on macOS
+        let global_config_file = PathBuf::from("/Library/Preferences/com.carriez.RustDesk/RustDesk.toml");
+        
+        if global_config_file.exists() {
+            let global_config: std::collections::HashMap<String, String> = 
+                load_path(global_config_file);
+            
+            if let Some(value) = global_config.get(key) {
+                return value.clone();
+            }
+        }
+    }
+    
+    "".to_owned()
 }
 
 #[inline]
@@ -939,6 +974,46 @@ pub fn video_save_directory(root: bool) -> String {
         }
     }
     Default::default()
+}
+
+#[inline]
+pub fn set_option_global(key: String, value: String) {
+    // This function sets configuration globally for all users by using system-wide paths
+    #[cfg(target_os = "macos")]
+    {
+        use std::path::PathBuf;
+        use hbb_common::config::{store_path, load_path};
+        
+        // Use /Library/Preferences for system-wide configuration on macOS
+        let global_config_dir = PathBuf::from("/Library/Preferences/com.carriez.RustDesk");
+        std::fs::create_dir_all(&global_config_dir).ok();
+        
+        let global_config_file = global_config_dir.join("RustDesk.toml");
+        
+        // Load existing global config or create new
+        let mut global_config: std::collections::HashMap<String, String> = 
+            load_path(global_config_file.clone());
+        
+        // Update the specific key
+        if value.is_empty() {
+            global_config.remove(&key);
+        } else {
+            global_config.insert(key.clone(), value.clone());
+        }
+        
+        // Store the updated config
+        if let Err(e) = store_path(global_config_file, &global_config) {
+            log::error!("Failed to store global config: {}", e);
+        }
+        
+        // Also update the local cache for immediate effect
+        set_option(key, value);
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        // For other platforms, fall back to regular set_option
+        set_option(key, value);
+    }
 }
 
 #[inline]
