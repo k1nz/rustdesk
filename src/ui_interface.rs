@@ -159,9 +159,9 @@ pub fn get_option<T: AsRef<str>>(key: T) -> String {
     {
         let map = OPTIONS.lock().unwrap();
         if let Some(v) = map.get(key.as_ref()) {
-            v.to_owned()
+            return v.to_owned();
         } else {
-            "".to_owned()
+            return "".to_owned();
         }
     }
     

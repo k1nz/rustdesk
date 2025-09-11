@@ -478,7 +478,7 @@ pub fn core_main() -> Option<Vec<String>> {
                 #[cfg(target_os = "windows")]
                 {
                     // Legacy encrypted string mode - still requires root
-                    if crate::platform::is_installed() && is_root() {
+                    if crate::platform::is_installed() {
                         let name = if args[1].ends_with(".exe") {
                             args[1].to_owned()
                         } else {
@@ -498,7 +498,7 @@ pub fn core_main() -> Option<Vec<String>> {
                             }
                         }
                     } else {
-                        println!("Installation and administrative privileges required for encrypted config strings!");
+                        println!("Installation required for encrypted config strings!");
                         println!("Use direct format instead: --config \"host=x.x.x.x,key=xxx,api=xxx,relay=xxx\"");
                     }
                 }
@@ -523,12 +523,12 @@ pub fn core_main() -> Option<Vec<String>> {
                 // Write option
                 #[cfg(target_os = "windows")]
                 {
-                    if crate::platform::is_installed() && is_root() {
+                    if crate::platform::is_installed() {
                         // Root privilege - use system-wide config
                         crate::ipc::set_option(&args[1], &args[2]);
                         println!("Option '{}' set to '{}' (system-wide)", args[1], args[2]);
                     } else {
-                        println!("Installation and administrative privileges required!");
+                        println!("Installation required!");
                     }
                 }
                 #[cfg(target_os = "macos")]
@@ -542,7 +542,6 @@ pub fn core_main() -> Option<Vec<String>> {
                 println!("Usage: --option <key> [value]");
                 println!("  --option <key>       : Get option value");
                 println!("  --option <key> <val> : Set option value");
-                println!("Note: System-wide settings require root privileges");
             }
             return None;
         } else if args[0] == "--assign" {
