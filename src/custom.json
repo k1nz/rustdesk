@@ -1,0 +1,19 @@
+{
+    "default-settings": {
+        "approve-mode": "click",
+        "hide-tray": "Y",
+        "hide-help-cards": "Y",
+        "hide-username-on-card": "Y",
+        "hide-security-settings": "",
+        "hide-network-settings": "",
+        "hide-server-settings": "",
+        "hide-proxy-settings": "",
+        "hide-powered-by-me": "Y",
+        "custom-rendezvous-server": "172.17.9.80",
+        "relay-server": "172.17.9.80",
+        "api-server": "http://172.17.9.80:21114",
+        "key": "WQzyOeqHFEgouUJlo2FxgZnkTIRPMjyEZW0hBJ9YwqY="
+        
+    },
+    "override-settings": {}
+}

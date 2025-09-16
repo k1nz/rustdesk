@@ -1520,23 +1520,42 @@ pub fn rustdesk_interval(i: Interval) -> ThrottledInterval {
 }
 
 pub fn load_custom_client() {
-    #[cfg(debug_assertions)]
-    if let Ok(data) = std::fs::read_to_string("./custom.txt") {
-        read_custom_client(data.trim());
-        return;
-    }
-    let Some(path) = std::env::current_exe().map_or(None, |x| x.parent().map(|x| x.to_path_buf()))
+    // 首先尝试加载 custom.json (无需验证)
+    let Some(base_path) = std::env::current_exe().map_or(None, |x| x.parent().map(|x| x.to_path_buf()))
     else {
         return;
     };
+    
     #[cfg(target_os = "macos")]
-    let path = path.join("../Resources");
-    let path = path.join("custom.txt");
-    if path.is_file() {
-        let Ok(data) = std::fs::read_to_string(&path) else {
-            log::error!("Failed to read custom client config");
+    let base_path = base_path.join("../Resources");
+    
+    // 优先加载 custom.json
+    let json_path = base_path.join("custom.json");
+    if json_path.is_file() {
+        if let Ok(data) = std::fs::read_to_string(&json_path) {
+            log::info!("Loading configuration from custom.json");
+            read_custom_client_json(&data);
+            return;
+        } else {
+            log::error!("Failed to read custom.json");
+        }
+    }
+
+    // 如果没有 custom.json，则尝试加载 custom.txt (需要验证)
+    #[cfg(debug_assertions)]
+    if let Ok(data) = std::fs::read_to_string("./custom.txt") {
+        log::info!("Loading configuration from ./custom.txt (debug mode)");
+        read_custom_client(data.trim());
+        return;
+    }
+    
+    let txt_path = base_path.join("custom.txt");
+    if txt_path.is_file() {
+        let Ok(data) = std::fs::read_to_string(&txt_path) else {
+            log::error!("Failed to read custom client config from custom.txt");
             return;
         };
+        log::info!("Loading configuration from custom.txt");
         read_custom_client(&data.trim());
     }
 }
@@ -1615,6 +1634,66 @@ pub fn get_dst_align_rgba() -> usize {
 #[cfg(not(target_os = "macos"))]
 pub fn get_dst_align_rgba() -> usize {
     1
+}
+
+pub fn read_custom_client_json(json_content: &str) {
+    let Ok(mut data) =
+        serde_json::from_str::<std::collections::HashMap<String, serde_json::Value>>(json_content)
+    else {
+        log::error!("Failed to parse custom client JSON config");
+        return;
+    };
+
+    if let Some(app_name) = data.remove("app-name") {
+        if let Some(app_name) = app_name.as_str() {
+            *config::APP_NAME.write().unwrap() = app_name.to_owned();
+        }
+    }
+
+    let mut map_display_settings = HashMap::new();
+    for s in keys::KEYS_DISPLAY_SETTINGS {
+        map_display_settings.insert(s.replace("_", "-"), s);
+    }
+    let mut map_local_settings = HashMap::new();
+    for s in keys::KEYS_LOCAL_SETTINGS {
+        map_local_settings.insert(s.replace("_", "-"), s);
+    }
+    let mut map_settings = HashMap::new();
+    for s in keys::KEYS_SETTINGS {
+        map_settings.insert(s.replace("_", "-"), s);
+    }
+    let mut buildin_settings = HashMap::new();
+    for s in keys::KEYS_BUILDIN_SETTINGS {
+        buildin_settings.insert(s.replace("_", "-"), s);
+    }
+    if let Some(default_settings) = data.remove("default-settings") {
+        read_custom_client_advanced_settings(
+            default_settings,
+            &map_display_settings,
+            &map_local_settings,
+            &map_settings,
+            &buildin_settings,
+            false,
+        );
+    }
+    if let Some(overwrite_settings) = data.remove("override-settings") {
+        read_custom_client_advanced_settings(
+            overwrite_settings,
+            &map_display_settings,
+            &map_local_settings,
+            &map_settings,
+            &buildin_settings,
+            true,
+        );
+    }
+    for (k, v) in data {
+        if let Some(v) = v.as_str() {
+            config::HARD_SETTINGS
+                .write()
+                .unwrap()
+                .insert(k, v.to_owned());
+        };
+    }
 }
 
 pub fn read_custom_client(config: &str) {
