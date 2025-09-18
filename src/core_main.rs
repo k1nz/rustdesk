@@ -230,7 +230,10 @@ pub fn core_main() -> Option<Vec<String>> {
                 let options = "desktopicon startmenu printer";
                 let res = platform::install_me(options, "".to_owned(), true, args.len() > 1);
                 let text = match res {
-                    Ok(_) => translate("Installation Successful!".to_string()),
+                    Ok(_) => {
+                        println!("Installation completed successfully.");
+                        translate("Installation Successful!".to_string())
+                    },
                     Err(err) => {
                         println!("Failed with error: {err}");
                         translate("Installation failed!".to_string())
@@ -243,6 +246,7 @@ pub fn core_main() -> Option<Vec<String>> {
                     .duration(Duration::Short)
                     .show()
                     .ok();
+                std::thread::sleep(std::time::Duration::from_secs(2));
                 return None;
             } else if args[0] == "--uninstall-cert" {
                 #[cfg(windows)]
@@ -324,7 +328,12 @@ pub fn core_main() -> Option<Vec<String>> {
             log::info!("start --install-service");
             #[cfg(target_os = "windows")]
             {
-                crate::platform::install_service(false);
+                let success = crate::platform::install_service_and_wait();
+                if success {
+                    println!("Service installation completed successfully.");
+                } else {
+                    println!("Service installation failed.");
+                }
             }
             #[cfg(not(target_os = "windows"))]
             {
