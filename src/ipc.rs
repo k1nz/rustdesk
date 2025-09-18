@@ -291,6 +291,7 @@ pub enum Data {
 
 #[tokio::main(flavor = "current_thread")]
 pub async fn start(postfix: &str) -> ResultType<()> {
+    log::info!("start ipc server => {}", postfix);
     let mut incoming = new_listener(postfix).await?;
     loop {
         if let Some(result) = incoming.next().await {
@@ -302,10 +303,12 @@ pub async fn start(postfix: &str) -> ResultType<()> {
                         loop {
                             match stream.next().await {
                                 Err(err) => {
-                                    log::trace!("ipc '{}' connection closed: {}", postfix, err);
+                                    log::trace!("[IPC {}] ipc connection closed: {}", postfix, err);
                                     break;
                                 }
                                 Ok(Some(data)) => {
+                                    // log::info!("[IPC {}] server data: {:?}", postfix, data);
+                                    // println!("[IPC {}] server data: {:?}", postfix, data);
                                     handle(data, &mut stream).await;
                                 }
                                 _ => {}
@@ -314,7 +317,7 @@ pub async fn start(postfix: &str) -> ResultType<()> {
                     });
                 }
                 Err(err) => {
-                    log::error!("Couldn't get client: {:?}", err);
+                    log::error!("[IPC {}] Couldn't get client: {:?}", postfix, err);
                 }
             }
         }
@@ -396,6 +399,7 @@ impl Drop for CheckIfRestart {
 }
 
 async fn handle(data: Data, stream: &mut Connection) {
+    // println!("handle data: {:?}", data);
     match data {
         Data::SystemInfo(_) => {
             let info = format!(
@@ -902,7 +906,10 @@ where
 
     pub async fn send(&mut self, data: &Data) -> ResultType<()> {
         let v = serde_json::to_vec(data)?;
-        self.inner.send(bytes::Bytes::from(v)).await?;
+        let bytes = bytes::Bytes::from(v);
+        // log::info!("[IPC] ---> Send: {:?}", bytes);
+        // println!("[IPC] ---> Send: {:?}", bytes);
+        self.inner.send(bytes).await?;
         Ok(())
     }
 
@@ -927,6 +934,8 @@ where
         match self.inner.next().await {
             Some(res) => {
                 let bytes = res?;
+                // log::info!("[IPC] <--- Recv: {:?}", bytes);
+                // println!("[IPC] <--- Recv: {:?}", bytes);
                 if let Ok(s) = std::str::from_utf8(&bytes) {
                     if let Ok(data) = serde_json::from_str::<Data>(s) {
                         return Ok(Some(data));

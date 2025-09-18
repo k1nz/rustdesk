@@ -158,10 +158,10 @@ pub fn get_option<T: AsRef<str>>(key: T) -> String {
     #[cfg(not(any(target_os = "android", target_os = "ios")))]
     {
         let map = OPTIONS.lock().unwrap();
-        if let Some(v) = map.get(key.as_ref()) {
-            return v.to_owned();
+        return if let Some(v) = map.get(key.as_ref()) {
+            v.to_owned()
         } else {
-            return "".to_owned();
+            "".to_owned()
         }
     }
     
@@ -174,10 +174,6 @@ pub fn get_option<T: AsRef<str>>(key: T) -> String {
     #[cfg(any(target_os = "android", target_os = "ios"))]
     {
         Config::get_option(key.as_ref())
-    }
-    #[cfg(not(any(target_os = "android", target_os = "ios")))]
-    {
-        "".to_owned()
     }
 }
 
