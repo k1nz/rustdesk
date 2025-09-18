@@ -459,7 +459,11 @@ def build_flutter_windows(version, features, skip_portable_pack):
                   './rustdesk_portable.exe')
     print(
         f'output location: {os.path.abspath(os.curdir)}/rustdesk_portable.exe')
-    os.rename('./rustdesk_portable.exe', f'./rustdesk-{version}-install.exe')
+
+    if os.path.exists(f'./rustdesk-{version}-install.exe'):
+        os.replace('./rustdesk_portable.exe', f'./rustdesk-{version}-install.exe')
+    else:
+        os.rename('./rustdesk_portable.exe', f'./rustdesk-{version}-install.exe')
     print(
         f'output location: {os.path.abspath(os.curdir)}/rustdesk-{version}-install.exe')
 
