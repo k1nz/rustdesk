@@ -12,8 +12,8 @@
         "custom-rendezvous-server": "172.17.9.80",
         "relay-server": "172.17.9.80",
         "api-server": "http://172.17.9.80:21114",
-        "key": "WQzyOeqHFEgouUJlo2FxgZnkTIRPMjyEZW0hBJ9YwqY="
-        
+        "key": "WQzyOeqHFEgouUJlo2FxgZnkTIRPMjyEZW0hBJ9YwqY=",
+        "view_style": "adaptive"
     },
     "override-settings": {}
 }
