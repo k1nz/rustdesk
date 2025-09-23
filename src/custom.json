@@ -1,7 +1,8 @@
 {
     "default-settings": {
         "approve-mode": "click",
-        "hide-tray": "Y",
+        "show-remote-cursor": "Y",
+        "hide-tray": "",
         "hide-help-cards": "Y",
         "hide-username-on-card": "Y",
         "hide-security-settings": "",
