@@ -364,7 +364,10 @@ pub fn core_main() -> Option<Vec<String>> {
             crate::privacy_mode::restore_reg_connectivity(true, false);
             #[cfg(any(target_os = "linux", target_os = "windows"))]
             {
-                crate::start_server(true, false);
+                let handler = std::thread::spawn(move || crate::start_server(true, false));
+                crate::tray::start_tray();
+                // prevent server exit when encountering errors from tray
+                hbb_common::allow_err!(handler.join());
             }
             #[cfg(target_os = "macos")]
             {
