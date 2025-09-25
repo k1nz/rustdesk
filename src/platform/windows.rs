@@ -1530,7 +1530,9 @@ copy /Y \"{tmp_path}\\Uninstall {app_name}.lnk\" \"{path}\\\"
         import_config = get_import_config(&exe),
     );
     run_cmds(cmds, debug, "install")?;
-    run_after_run_cmds(silent);
+    if !silent {
+        run_after_run_cmds(silent);
+    };
     Ok(())
 }
 
