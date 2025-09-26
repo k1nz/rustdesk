@@ -749,16 +749,16 @@ class WindowActionPanelState extends State<WindowActionPanel> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        Obx(() {
-          if (showTabDowndown() && existingInvisibleTab().isNotEmpty) {
-            return _TabDropDownButton(
-                controller: widget.tabController,
-                labelGetter: widget.labelGetter,
-                tabkeys: existingInvisibleTab());
-          } else {
-            return Offstage();
-          }
-        }),
+        // Obx(() {
+        //   if (showTabDowndown() && existingInvisibleTab().isNotEmpty) {
+        //     return _TabDropDownButton(
+        //         controller: widget.tabController,
+        //         labelGetter: widget.labelGetter,
+        //         tabkeys: existingInvisibleTab());
+        //   } else {
+        //     return Offstage();
+        //   }
+        // }),
         if (widget.tail != null) widget.tail!,
         if (!kUseCompatibleUiMode)
           Row(
@@ -1316,7 +1316,8 @@ class AddButton extends StatelessWidget {
         icon: IconFont.add,
         onTap: () => rustDeskWinManager.call(
             WindowType.Main, kWindowMainWindowOnTop, ""),
-        isClose: false);
+        isClose: false
+        );
   }
 }
 

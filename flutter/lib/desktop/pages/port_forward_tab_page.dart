@@ -106,7 +106,7 @@ class _PortForwardTabPageState extends State<PortForwardTabPage> {
           tabController.clear();
           return true;
         },
-        tail: AddButton(),
+        // tail: AddButton(),
         selectedBorderColor: MyTheme.accent,
         labelGetter: DesktopTab.tablabelGetter,
       ),
