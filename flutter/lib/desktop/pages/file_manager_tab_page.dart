@@ -97,7 +97,7 @@ class _FileManagerTabPageState extends State<FileManagerTabPage> {
         body: DesktopTab(
           controller: tabController,
           onWindowCloseButton: handleWindowCloseButton,
-          tail: const AddButton(),
+          // tail: const AddButton(),
           selectedBorderColor: MyTheme.accent,
           labelGetter: DesktopTab.tablabelGetter,
         ));
